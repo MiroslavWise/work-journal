@@ -75,6 +75,7 @@ npm run dev
 | `GET` | `/journal-entries?page=1` | Список записей с пагинацией (20 на страницу) |
 | `POST` | `/journal-entries` | Создание записи |
 | `PATCH` | `/journal-entries/{id}` | Частичное обновление записи |
+| `DELETE` | `/journal-entries/{id}` | Удаление записи по id |
 
 ### GET /journal-entries
 
@@ -142,6 +143,17 @@ npm run dev
 - `400` — невалидные данные или не передано ни одного поля
 - `404` — запись не найдена
 
+### DELETE /journal-entries/{id}
+
+Удаляет запись по id.
+
+**Ответ:** `204 No Content` — запись удалена.
+
+**Ошибки:**
+
+- `400` — невалидный id
+- `404` — запись не найдена
+
 ## Примеры запросов
 
 Через frontend-прокси (dev-сервер на `:5173`):
@@ -161,6 +173,8 @@ curl -X POST http://127.0.0.1:3000/journal-entries `
 curl -X PATCH http://127.0.0.1:3000/journal-entries/1 `
   -H "Content-Type: application/json" `
   -d '{"volume":150}'
+
+curl -X DELETE http://127.0.0.1:3000/journal-entries/1
 ```
 
 ## Деплой на Vercel

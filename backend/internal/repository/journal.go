@@ -51,7 +51,7 @@ func (r *JournalRepository) List(ctx context.Context, page int) (model.JournalEn
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, completion_date, work_type, volume, unit, performer_name, created_at
 		FROM journal_entries
-		ORDER BY id DESC
+		ORDER BY id ASC
 		LIMIT $1 OFFSET $2
 	`, limit, offset)
 	if err != nil {
@@ -149,6 +149,19 @@ func (r *JournalRepository) Update(ctx context.Context, id int64, input model.Up
 	}
 
 	return entry, nil
+}
+
+func (r *JournalRepository) Delete(ctx context.Context, id int64) error {
+	tag, err := r.pool.Exec(ctx, `DELETE FROM journal_entries WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("delete journal entry: %w", err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }
 
 type scannable interface {

@@ -75,9 +75,9 @@ func (h *Handler) CreateJournalEntry(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) UpdateJournalEntry(w http.ResponseWriter, r *http.Request) {
-	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
-	if err != nil || id < 1 {
-		writeError(w, http.StatusBadRequest, "invalid id")
+	id, err := parseEntryID(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -107,6 +107,25 @@ func (h *Handler) UpdateJournalEntry(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, entry)
+}
+
+func (h *Handler) DeleteJournalEntry(w http.ResponseWriter, r *http.Request) {
+	id, err := parseEntryID(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := h.journal.Delete(r.Context(), id); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "journal entry not found")
+			return
+		}
+		writeError(w, http.StatusInternalServerError, "failed to delete journal entry")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func buildUpdateInput(req model.UpdateJournalEntryRequest) (model.UpdateJournalEntryInput, error) {
@@ -152,6 +171,15 @@ func parseCompletionDate(value string) (time.Time, error) {
 	}
 
 	return date, nil
+}
+
+func parseEntryID(r *http.Request) (int64, error) {
+	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, errors.New("invalid id")
+	}
+
+	return id, nil
 }
 
 func trimOptionalString(value *string) *string {
