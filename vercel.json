@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "experimentalServices": {
+    "web": {
+      "entrypoint": "frontend",
+      "mount": "/",
+      "framework": "vite"
+    },
+    "backend": {
+      "entrypoint": "backend/main.go",
+      "mount": "/api",
+      "framework": "go",
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
+}
