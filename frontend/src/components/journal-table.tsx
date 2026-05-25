@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { parseAsInteger, useQueryState } from "nuqs"
 
 import { getJournalEntries } from "~/api/get"
@@ -13,7 +13,25 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "~/components/ui/pagination"
+import { Skeleton } from "~/components/ui/skeleton"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
+import { cn } from "~/lib/utils"
+
+const JOURNAL_PAGE_SIZE = 20
+
+const skeletonColumns = ["w-8", "w-24", "w-44", "w-16", "w-12", "w-36"] as const
+
+function JournalTableSkeletonRows() {
+  return Array.from({ length: JOURNAL_PAGE_SIZE }, (_, rowIndex) => (
+    <TableRow key={`journal-skeleton-${rowIndex}`}>
+      {skeletonColumns.map((width, cellIndex) => (
+        <TableCell key={cellIndex}>
+          <Skeleton className={cn("h-5", width)} />
+        </TableCell>
+      ))}
+    </TableRow>
+  ))
+}
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("ru-RU")
@@ -55,9 +73,10 @@ function getPageNumbers(current: number, total: number): (number | "ellipsis")[]
 function JournalTable() {
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["journal-entries", page],
     queryFn: () => getJournalEntries(page),
+    placeholderData: keepPreviousData,
   })
 
   const totalPages = data?.total_pages ?? 1
@@ -83,13 +102,7 @@ function JournalTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {isLoading && (
-            <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
-                Загрузка...
-              </TableCell>
-            </TableRow>
-          )}
+          {isPending && <JournalTableSkeletonRows />}
 
           {isError && (
             <TableRow>
@@ -99,7 +112,7 @@ function JournalTable() {
             </TableRow>
           )}
 
-          {!isLoading && !isError && data?.items.length === 0 && (
+          {!isPending && !isError && data?.items.length === 0 && (
             <TableRow>
               <TableCell colSpan={6} className="h-24 text-center">
                 Записей пока нет
@@ -107,7 +120,7 @@ function JournalTable() {
             </TableRow>
           )}
 
-          {!isLoading &&
+          {!isPending &&
             !isError &&
             data?.items.map((entry) => (
               <TableRow key={entry.id}>
