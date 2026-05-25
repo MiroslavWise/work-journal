@@ -2,6 +2,9 @@
 
 Веб-приложение для ведения журнала работ: React-фронтенд и Go-бэкенд с PostgreSQL (Neon).
 
+# Страница запущенного проекта
+[Сайт проекта](https://work-journal-tan.vercel.app/)
+
 ## Стек
 
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS
