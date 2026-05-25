@@ -43,7 +43,7 @@ func (r *JournalRepository) List(ctx context.Context, page int) (model.JournalEn
 	rows, err := r.pool.Query(ctx, `
 		SELECT id, completion_date, work_type, volume, unit, performer_name, created_at
 		FROM journal_entries
-		ORDER BY completion_date DESC, id DESC
+		ORDER BY id DESC
 		LIMIT $1 OFFSET $2
 	`, limit, offset)
 	if err != nil {
