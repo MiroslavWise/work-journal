@@ -31,6 +31,7 @@ function App() {
       })
       .then((data: any) => {
         console.log("Journal entries:", data?.items);
+      });
   }, []);
 
   return (
