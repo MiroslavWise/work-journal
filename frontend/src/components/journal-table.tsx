@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query"
 import { parseAsInteger, useQueryState } from "nuqs"
 
 import { getJournalEntries } from "~/api/get"
+import { Button } from "~/components/ui/button"
+import { DrawerTrigger } from "~/components/ui/drawer"
 import {
   Pagination,
   PaginationContent,
@@ -11,15 +13,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "~/components/ui/pagination"
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "~/components/ui/table"
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
 
 function formatDate(value: string) {
   return new Date(value).toLocaleDateString("ru-RU")
@@ -31,10 +25,7 @@ function formatVolume(value: number) {
   }).format(value)
 }
 
-function getPageNumbers(
-  current: number,
-  total: number,
-): (number | "ellipsis")[] {
+function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
   if (total <= 7) {
     return Array.from({ length: total }, (_, index) => index + 1)
   }
@@ -61,7 +52,7 @@ function getPageNumbers(
   return pages
 }
 
-export function JournalTable() {
+function JournalTable() {
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
 
   const { data, isLoading, isError } = useQuery({
@@ -74,6 +65,12 @@ export function JournalTable() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+      <div className="flex justify-end">
+        <DrawerTrigger asChild>
+          <Button variant="outline">Добавить запись</Button>
+        </DrawerTrigger>
+      </div>
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -136,9 +133,7 @@ export function JournalTable() {
               <PaginationPrevious
                 text="Назад"
                 href="#"
-                className={
-                  currentPage <= 1 ? "pointer-events-none opacity-50" : undefined
-                }
+                className={currentPage <= 1 ? "pointer-events-none opacity-50" : undefined}
                 onClick={(event) => {
                   event.preventDefault()
                   if (currentPage > 1) {
@@ -173,11 +168,7 @@ export function JournalTable() {
               <PaginationNext
                 text="Вперёд"
                 href="#"
-                className={
-                  currentPage >= totalPages
-                    ? "pointer-events-none opacity-50"
-                    : undefined
-                }
+                className={currentPage >= totalPages ? "pointer-events-none opacity-50" : undefined}
                 onClick={(event) => {
                   event.preventDefault()
                   if (currentPage < totalPages) {
@@ -192,3 +183,6 @@ export function JournalTable() {
     </div>
   )
 }
+
+JournalTable.displayName = "JournalTable"
+export default JournalTable
