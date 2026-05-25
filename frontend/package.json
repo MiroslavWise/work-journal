@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "doc": "npx -y react-doctor@latest . --verbose",
+    "doctor": "react-doctor"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
@@ -47,6 +49,7 @@
     "globals": "^17.6.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
-    "vite": "^8.0.12"
+    "vite": "^8.0.12",
+    "react-doctor": "^0.2.6"
   }
 }

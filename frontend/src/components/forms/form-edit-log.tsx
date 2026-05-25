@@ -1,36 +1,36 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useForm, type Resolver } from "react-hook-form"
 
-import { createJournalEntry } from "~/api/post"
-import JournalEntryFields from "~/components/forms/fields/journal-entry-fields"
 import { Button } from "~/components/ui/button"
 import { FieldGroup } from "~/components/ui/field"
-import { createJournalDefaultValues } from "~/lib/journal-form"
+import JournalEntryFields from "~/components/forms/fields/journal-entry-fields"
+
+import { updateJournalEntry } from "~/api/patch"
+import type { IJournal } from "~/interface/journal"
+import { journalEntryToSchema } from "~/lib/journal-form"
 import { resolver, type Schema } from "~/schemas/journal"
 
-interface FormCreateLogProps {
+interface FormEditLogProps {
+  entry: IJournal
   onSuccess: () => void
 }
 
-function FormCreateLog({ onSuccess }: FormCreateLogProps) {
+function FormEditLog({ entry, onSuccess }: FormEditLogProps) {
   const queryClient = useQueryClient()
-  const defaultValues = createJournalDefaultValues()
 
   const {
     handleSubmit,
     control,
-    reset,
     formState: { isSubmitting },
   } = useForm<Schema>({
     resolver: resolver as Resolver<Schema>,
-    defaultValues,
+    values: journalEntryToSchema(entry),
   })
 
   const mutation = useMutation({
-    mutationFn: createJournalEntry,
+    mutationFn: (data: Schema) => updateJournalEntry(entry.id, data),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["journal-entries"] })
-      reset(defaultValues)
       onSuccess()
     },
   })
@@ -45,14 +45,14 @@ function FormCreateLog({ onSuccess }: FormCreateLogProps) {
         <JournalEntryFields control={control} />
       </FieldGroup>
 
-      {mutation.isError && <p className="text-sm text-destructive">Не удалось сохранить запись</p>}
+      {mutation.isError && <p className="text-sm text-destructive">Не удалось обновить запись</p>}
 
       <Button disabled={isSubmitting || mutation.isPending} type="submit">
-        {mutation.isPending ? "Сохранение..." : "Сохранить"}
+        {mutation.isPending ? "Сохранение..." : "Сохранить изменения"}
       </Button>
     </form>
   )
 }
 
-FormCreateLog.displayName = "FormCreateLog"
-export default FormCreateLog
+FormEditLog.displayName = "FormEditLog"
+export default FormEditLog

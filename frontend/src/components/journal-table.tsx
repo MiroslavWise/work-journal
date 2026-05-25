@@ -1,9 +1,6 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { parseAsInteger, useQueryState } from "nuqs"
+import { keepPreviousData, useQuery } from "@tanstack/react-query"
 
-import { getJournalEntries } from "~/api/get"
-import { Button } from "~/components/ui/button"
-import { DrawerTrigger } from "~/components/ui/drawer"
 import {
   Pagination,
   PaginationContent,
@@ -13,20 +10,39 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "~/components/ui/pagination"
+import { Button } from "~/components/ui/button"
 import { Skeleton } from "~/components/ui/skeleton"
+import { DrawerTrigger } from "~/components/ui/drawer"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
+
 import { cn } from "~/lib/utils"
+import { getJournalEntries } from "~/api/get"
+import type { IJournal } from "~/interface/journal"
 
 const JOURNAL_PAGE_SIZE = 20
 
-const skeletonColumns = ["w-8", "w-24", "w-44", "w-16", "w-12", "w-36"] as const
+const skeletonColumns = [
+  { id: "number", width: "w-8" },
+  { id: "date", width: "w-24" },
+  { id: "work-type", width: "w-44" },
+  { id: "volume", width: "w-16" },
+  { id: "unit", width: "w-12" },
+  { id: "performer", width: "w-36" },
+  { id: "actions", width: "w-16" },
+] as const
+
+const skeletonRowIds = Array.from({ length: JOURNAL_PAGE_SIZE }, (_, rowNumber) => `journal-skeleton-row-${rowNumber + 1}`)
+
+const volumeFormatter = new Intl.NumberFormat("ru-RU", {
+  maximumFractionDigits: 2,
+})
 
 function JournalTableSkeletonRows() {
-  return Array.from({ length: JOURNAL_PAGE_SIZE }, (_, rowIndex) => (
-    <TableRow key={`journal-skeleton-${rowIndex}`}>
-      {skeletonColumns.map((width, cellIndex) => (
-        <TableCell key={cellIndex}>
-          <Skeleton className={cn("h-5", width)} />
+  return skeletonRowIds.map((rowId) => (
+    <TableRow key={rowId}>
+      {skeletonColumns.map((column) => (
+        <TableCell key={column.id}>
+          <Skeleton className={cn("h-5", column.width)} />
         </TableCell>
       ))}
     </TableRow>
@@ -38,39 +54,42 @@ function formatDate(value: string) {
 }
 
 function formatVolume(value: number) {
-  return new Intl.NumberFormat("ru-RU", {
-    maximumFractionDigits: 2,
-  }).format(value)
+  return volumeFormatter.format(value)
 }
 
-function getPageNumbers(current: number, total: number): (number | "ellipsis")[] {
+type PageItem = { type: "page"; value: number } | { type: "ellipsis"; id: "leading" | "trailing" }
+
+function getPageNumbers(current: number, total: number): PageItem[] {
   if (total <= 7) {
-    return Array.from({ length: total }, (_, index) => index + 1)
+    return Array.from({ length: total }, (_, index) => ({
+      type: "page" as const,
+      value: index + 1,
+    }))
   }
 
-  const pages: (number | "ellipsis")[] = [1]
+  const pages: PageItem[] = [{ type: "page", value: 1 }]
 
   if (current > 3) {
-    pages.push("ellipsis")
+    pages.push({ type: "ellipsis", id: "leading" })
   }
 
   const start = Math.max(2, current - 1)
   const end = Math.min(total - 1, current + 1)
 
   for (let page = start; page <= end; page += 1) {
-    pages.push(page)
+    pages.push({ type: "page", value: page })
   }
 
   if (current < total - 2) {
-    pages.push("ellipsis")
+    pages.push({ type: "ellipsis", id: "trailing" })
   }
 
-  pages.push(total)
+  pages.push({ type: "page", value: total })
 
   return pages
 }
 
-function JournalTable() {
+function JournalTable({ onEdit }: { onEdit: (entry: IJournal) => void }) {
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
 
   const { data, isPending, isError } = useQuery({
@@ -84,7 +103,8 @@ function JournalTable() {
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center gap-2">
+        <h2 className="text-lg font-bold">Журнал учёта выполненных работ</h2>
         <DrawerTrigger asChild>
           <Button variant="outline">Добавить запись</Button>
         </DrawerTrigger>
@@ -99,6 +119,7 @@ function JournalTable() {
             <TableHead>Объём</TableHead>
             <TableHead>Ед. изм.</TableHead>
             <TableHead>Исполнитель</TableHead>
+            <TableHead className="w-[100px]">Действия</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -106,7 +127,7 @@ function JournalTable() {
 
           {isError && (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center text-destructive">
+              <TableCell colSpan={7} className="h-24 text-center text-destructive">
                 Не удалось загрузить записи
               </TableCell>
             </TableRow>
@@ -114,7 +135,7 @@ function JournalTable() {
 
           {!isPending && !isError && data?.items.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={7} className="h-24 text-center">
                 Записей пока нет
               </TableCell>
             </TableRow>
@@ -130,6 +151,11 @@ function JournalTable() {
                 <TableCell>{formatVolume(entry.volume)}</TableCell>
                 <TableCell>{entry.unit}</TableCell>
                 <TableCell>{entry.performer_name}</TableCell>
+                <TableCell>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => onEdit(entry)}>
+                    Изменить
+                  </Button>
+                </TableCell>
               </TableRow>
             ))}
         </TableBody>
@@ -156,22 +182,22 @@ function JournalTable() {
               />
             </PaginationItem>
 
-            {getPageNumbers(currentPage, totalPages).map((pageNumber, index) =>
-              pageNumber === "ellipsis" ? (
-                <PaginationItem key={`ellipsis-${index}`}>
+            {getPageNumbers(currentPage, totalPages).map((item) =>
+              item.type === "ellipsis" ? (
+                <PaginationItem key={`ellipsis-${item.id}`}>
                   <PaginationEllipsis />
                 </PaginationItem>
               ) : (
-                <PaginationItem key={pageNumber}>
+                <PaginationItem key={item.value}>
                   <PaginationLink
                     href="#"
-                    isActive={pageNumber === currentPage}
+                    isActive={item.value === currentPage}
                     onClick={(event) => {
                       event.preventDefault()
-                      void setPage(pageNumber)
+                      void setPage(item.value)
                     }}
                   >
-                    {pageNumber}
+                    {item.value}
                   </PaginationLink>
                 </PaginationItem>
               ),
