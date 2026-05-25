@@ -2,14 +2,22 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"work-journal/backend/internal/model"
 )
 
 const journalPageSize = 20
+
+var (
+	ErrNotFound        = errors.New("journal entry not found")
+	ErrNothingToUpdate = errors.New("nothing to update")
+)
 
 type JournalRepository struct {
 	pool *pgxpool.Pool
@@ -53,17 +61,9 @@ func (r *JournalRepository) List(ctx context.Context, page int) (model.JournalEn
 
 	items := make([]model.JournalEntry, 0)
 	for rows.Next() {
-		var entry model.JournalEntry
-		if err := rows.Scan(
-			&entry.ID,
-			&entry.CompletionDate,
-			&entry.WorkType,
-			&entry.Volume,
-			&entry.Unit,
-			&entry.PerformerName,
-			&entry.CreatedAt,
-		); err != nil {
-			return model.JournalEntriesPage{}, fmt.Errorf("scan journal entry: %w", err)
+		entry, err := scanJournalEntry(rows)
+		if err != nil {
+			return model.JournalEntriesPage{}, err
 		}
 		items = append(items, entry)
 	}
@@ -79,4 +79,95 @@ func (r *JournalRepository) List(ctx context.Context, page int) (model.JournalEn
 		Total:      total,
 		TotalPages: totalPages,
 	}, nil
+}
+
+func (r *JournalRepository) Create(ctx context.Context, input model.CreateJournalEntryInput) (model.JournalEntry, error) {
+	row := r.pool.QueryRow(ctx, `
+		INSERT INTO journal_entries (completion_date, work_type, volume, unit, performer_name)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, completion_date, work_type, volume, unit, performer_name, created_at
+	`, input.CompletionDate, input.WorkType, input.Volume, input.Unit, input.PerformerName)
+
+	entry, err := scanJournalEntry(row)
+	if err != nil {
+		return model.JournalEntry{}, fmt.Errorf("create journal entry: %w", err)
+	}
+
+	return entry, nil
+}
+
+func (r *JournalRepository) Update(ctx context.Context, id int64, input model.UpdateJournalEntryInput) (model.JournalEntry, error) {
+	setParts := make([]string, 0, 5)
+	args := make([]any, 0, 6)
+	argIndex := 1
+
+	if input.CompletionDate != nil {
+		setParts = append(setParts, fmt.Sprintf("completion_date = $%d", argIndex))
+		args = append(args, *input.CompletionDate)
+		argIndex++
+	}
+	if input.WorkType != nil {
+		setParts = append(setParts, fmt.Sprintf("work_type = $%d", argIndex))
+		args = append(args, *input.WorkType)
+		argIndex++
+	}
+	if input.Volume != nil {
+		setParts = append(setParts, fmt.Sprintf("volume = $%d", argIndex))
+		args = append(args, *input.Volume)
+		argIndex++
+	}
+	if input.Unit != nil {
+		setParts = append(setParts, fmt.Sprintf("unit = $%d", argIndex))
+		args = append(args, *input.Unit)
+		argIndex++
+	}
+	if input.PerformerName != nil {
+		setParts = append(setParts, fmt.Sprintf("performer_name = $%d", argIndex))
+		args = append(args, *input.PerformerName)
+		argIndex++
+	}
+
+	if len(setParts) == 0 {
+		return model.JournalEntry{}, ErrNothingToUpdate
+	}
+
+	args = append(args, id)
+	query := fmt.Sprintf(`
+		UPDATE journal_entries
+		SET %s
+		WHERE id = $%d
+		RETURNING id, completion_date, work_type, volume, unit, performer_name, created_at
+	`, strings.Join(setParts, ", "), argIndex)
+
+	row := r.pool.QueryRow(ctx, query, args...)
+	entry, err := scanJournalEntry(row)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.JournalEntry{}, ErrNotFound
+		}
+		return model.JournalEntry{}, fmt.Errorf("update journal entry: %w", err)
+	}
+
+	return entry, nil
+}
+
+type scannable interface {
+	Scan(dest ...any) error
+}
+
+func scanJournalEntry(row scannable) (model.JournalEntry, error) {
+	var entry model.JournalEntry
+	if err := row.Scan(
+		&entry.ID,
+		&entry.CompletionDate,
+		&entry.WorkType,
+		&entry.Volume,
+		&entry.Unit,
+		&entry.PerformerName,
+		&entry.CreatedAt,
+	); err != nil {
+		return model.JournalEntry{}, fmt.Errorf("scan journal entry: %w", err)
+	}
+
+	return entry, nil
 }
