@@ -21,6 +21,16 @@ function App() {
       .catch((error: unknown) => {
         console.error("Backend health check error:", error);
       });
+
+    void fetch("/api/journal-entries")
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`Journal entries fetch failed: ${res.status}`);
+        }
+        return res.json() as Promise<{ items: any[] }>;
+      })
+      .then((data: any) => {
+        console.log("Journal entries:", data?.items);
   }, []);
 
   return (
