@@ -12,9 +12,20 @@ function App() {
   const [editOpen, setEditOpen] = useState(false)
   const [editEntry, setEditEntry] = useState<IJournal | null>(null)
 
+  const handleAdd = () => {
+    setEditOpen(false)
+    setEditEntry(null)
+    setCreateOpen(true)
+  }
+
   const handleEdit = (entry: IJournal) => {
+    setCreateOpen(false)
     setEditEntry(entry)
     setEditOpen(true)
+  }
+
+  const handleCreateOpenChange = (value: boolean | ((prev: boolean) => boolean)) => {
+    setCreateOpen(value)
   }
 
   const handleEditOpenChange = (value: boolean | ((prev: boolean) => boolean)) => {
@@ -28,13 +39,17 @@ function App() {
   }
 
   return (
-    <ProviderCreateLog onOpenChange={setCreateOpen} open={createOpen}>
+    <>
+      <JournalTable onAdd={handleAdd} onEdit={handleEdit} />
+
+      <ProviderCreateLog onOpenChange={handleCreateOpenChange} open={createOpen}>
+        <CreateLog onOpenChange={handleCreateOpenChange} open={createOpen} />
+      </ProviderCreateLog>
+
       <ProviderEditLog onOpenChange={handleEditOpenChange} open={editOpen}>
-        <JournalTable onEdit={handleEdit} />
-        <CreateLog onOpenChange={setCreateOpen} open={createOpen} />
         <EditLog entry={editEntry} onOpenChange={handleEditOpenChange} open={editOpen} />
       </ProviderEditLog>
-    </ProviderCreateLog>
+    </>
   )
 }
 

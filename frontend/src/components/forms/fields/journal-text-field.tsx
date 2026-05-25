@@ -5,7 +5,7 @@ import { Field, FieldError, FieldLabel } from "~/components/ui/field"
 
 import type { Schema } from "~/schemas/journal"
 
-type JournalTextFieldName = "work_type" | "unit" | "performer_name"
+type JournalTextFieldName = "work_type" | "performer_name"
 
 interface JournalTextFieldProps {
   control: Control<Schema>

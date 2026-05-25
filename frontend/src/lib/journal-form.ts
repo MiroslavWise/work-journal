@@ -8,7 +8,7 @@ export function createJournalDefaultValues(): Schema {
     work_type: "",
     unit: "",
     performer_name: "",
-  } as Schema
+  } as unknown as Schema
 }
 
 export function journalEntryToSchema(entry: IJournal): Schema {
@@ -18,5 +18,5 @@ export function journalEntryToSchema(entry: IJournal): Schema {
     volume: entry.volume,
     unit: entry.unit,
     performer_name: entry.performer_name,
-  }
+  } as Schema
 }

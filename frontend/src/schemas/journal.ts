@@ -1,6 +1,8 @@
 import { yupResolver } from "@hookform/resolvers/yup"
 import * as yup from "yup"
 
+import { journalUnitValues } from "~/constants/journal-units"
+
 const datePattern = /^\d{4}-\d{2}-\d{2}$/
 
 const schema = yup.object({
@@ -32,7 +34,7 @@ const schema = yup.object({
     .min(0, "Объём не может быть отрицательным"),
   unit: yup
     .string()
-    .trim()
+    .oneOf([...journalUnitValues], "Выберите единицу измерения")
     .required("Укажите единицу измерения"),
   performer_name: yup
     .string()

@@ -12,7 +12,6 @@ import {
 } from "~/components/ui/pagination"
 import { Button } from "~/components/ui/button"
 import { Skeleton } from "~/components/ui/skeleton"
-import { DrawerTrigger } from "~/components/ui/drawer"
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "~/components/ui/table"
 
 import { cn } from "~/lib/utils"
@@ -89,7 +88,13 @@ function getPageNumbers(current: number, total: number): PageItem[] {
   return pages
 }
 
-function JournalTable({ onEdit }: { onEdit: (entry: IJournal) => void }) {
+function JournalTable({
+  onAdd,
+  onEdit,
+}: {
+  onAdd: () => void
+  onEdit: (entry: IJournal) => void
+}) {
   const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(1))
 
   const { data, isPending, isError } = useQuery({
@@ -105,9 +110,9 @@ function JournalTable({ onEdit }: { onEdit: (entry: IJournal) => void }) {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
       <div className="flex justify-between items-center gap-2">
         <h2 className="text-lg font-bold">Журнал учёта выполненных работ</h2>
-        <DrawerTrigger asChild>
-          <Button variant="outline">Добавить запись</Button>
-        </DrawerTrigger>
+        <Button type="button" variant="outline" onClick={onAdd}>
+          Добавить запись
+        </Button>
       </div>
 
       <Table>
